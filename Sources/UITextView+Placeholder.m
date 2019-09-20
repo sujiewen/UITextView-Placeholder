@@ -54,12 +54,22 @@
 #pragma mark `defaultPlaceholderColor`
 
 + (UIColor *)defaultPlaceholderColor {
+    if (@available(iOS 13, *)) {
+      SEL selector = NSSelectorFromString(@"placeholderTextColor");
+      if ([UIColor respondsToSelector:selector]) {
+        return [UIColor performSelector:selector];
+      }
+    }
     static UIColor *color = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         UITextField *textField = [[UITextField alloc] init];
         textField.placeholder = @" ";
-        color = [textField valueForKeyPath:@"_placeholderLabel.textColor"];
+        NSDictionary *attributes = [textField.attributedPlaceholder attributesAtIndex:0 effectiveRange:nil];
+        color = attributes[NSForegroundColorAttributeName];
+        if (!color) {
+          color = [UIColor colorWithRed:0 green:0 blue:0.0980392 alpha:0.22];
+        }
     });
     return color;
 }
@@ -75,6 +85,7 @@
              @"text",
              @"textAlignment",
              @"textContainerInset",
+             @"textContainer.lineFragmentPadding",
              @"textContainer.exclusionPaths"];
 }
 
@@ -90,8 +101,10 @@
         self.attributedText = originalText;
 
         textView = [[UITextView alloc] init];
+        textView.backgroundColor = [UIColor clearColor];
         textView.textColor = [self.class defaultPlaceholderColor];
         textView.userInteractionEnabled = NO;
+        textView.isAccessibilityElement = NO;
         objc_setAssociatedObject(self, @selector(placeholderTextView), textView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
         self.needsUpdateFont = YES;
@@ -179,28 +192,12 @@
         self.placeholderTextView.font = self.font;
         self.needsUpdateFont = NO;
     }
-    self.placeholderTextView.textAlignment = self.textAlignment;
-
-    // `NSTextContainer` is available since iOS 7
-    CGFloat lineFragmentPadding;
-    UIEdgeInsets textContainerInset;
-
-#pragma deploymate push "ignored-api-availability"
-    // iOS 7+
-    if (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_6_1) {
-        lineFragmentPadding = self.textContainer.lineFragmentPadding;
-        textContainerInset = self.textContainerInset;
+    if (self.placeholderTextView.attributedText.length == 0) {
+      self.placeholderTextView.textAlignment = self.textAlignment;
     }
-#pragma deploymate pop
-
-    // iOS 6
-    else {
-        lineFragmentPadding = 5;
-        textContainerInset = UIEdgeInsetsMake(8, 0, 8, 0);
-    }
-
     self.placeholderTextView.textContainer.exclusionPaths = self.textContainer.exclusionPaths;
     self.placeholderTextView.textContainerInset = self.textContainerInset;
+    self.placeholderTextView.textContainer.lineFragmentPadding = self.textContainer.lineFragmentPadding;
     self.placeholderTextView.frame = self.bounds;
 }
 

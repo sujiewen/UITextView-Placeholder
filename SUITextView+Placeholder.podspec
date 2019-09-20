@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "SUITextView+Placeholder"
-  s.version      = "1.2.1.1"
+  s.version      = "1.3.3"
   s.summary      = "A missing placeholder for UITextView."
   s.homepage     = "https://github.com/devxoul/UITextView-Placeholder"
   s.license      = { :type => 'MIT', :file => 'LICENSE' }
